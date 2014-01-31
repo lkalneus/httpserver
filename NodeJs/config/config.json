@@ -1,0 +1,26 @@
+{
+    "port": 1337,
+    "db": {
+        "host": "localhost",
+        "name": "test",
+	"port": "27017",
+	"username": "admin",
+	"password": "password",
+        "options": {
+            "server": {
+                "socketOptions": {
+                    "keepAlive": 1
+                }
+            }
+        }
+    },
+    "session": {
+        "secret": "secret_key",
+        "key": "cid",
+        "cookie": {
+            "path": "/",
+            "httpOnly": true,
+            "maxAge": null
+        }
+    }
+}

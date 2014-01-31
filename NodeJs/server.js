@@ -1,7 +1,12 @@
-var http = require('http'),
-    url = require('url'),
+var express = require('express'),
+    http = require('http'),
+    mongoose = require('mongoose'),
     path = require('path'),
-    fs = require('fs');
+    fs = require('fs'),
+    config = require('./config'),
+    app = express(),
+    httpServer = http.createServer(app);
+
 var mimeTypes = {
     "html": "text/html",
     "jpeg": "image/jpeg",
@@ -10,12 +15,41 @@ var mimeTypes = {
     "js": "text/javascript",
     "css": "text/css"};
 
+app.use(express.cookieParser());
+app.use(express.bodyParser());
 
-http.createServer(function(req, res) {
+var dbUrl = 'mongodb://';
+//dbUrl += config.get('db:username')+':'+config.get('db:password')+'@';
+dbUrl += config.get('db:host')+':'+config.get('db:port');
+dbUrl += '/' + config.get('db:name');
+mongoose.connect(dbUrl);
+
+var MongoStore = require('connect-mongo')(express);
+
+app.use(express.session({
+    secret: config.get('session:secret'),
+    key: config.get('session:key'),
+    cookie: config.get('session:cookie'),
+    store: new MongoStore(
+        {
+	    mongoose_connection: mongoose.connection
+	}//,
+//        function(error) {
+//            console.log(error || "connect-mongodb setup ok");
+//        }
+	)
+    })
+);
+
+app.use(function(req, res, next) {
+  req.session.numberOfVisits = req.session.numberOfVisits + 1 || 1;
+  res.send("Visits: " + req.session.numberOfVisits);
+});
+
+app.use(function(req, res) {
   var uri = url.parse(req.url).pathname;
   var filename = path.join(process.cwd(), unescape(uri));
   var stats;
-
 
   try {
     stats = fs.lstatSync(filename); // throws if path doesn't exist
@@ -50,4 +84,8 @@ http.createServer(function(req, res) {
     res.write('<h1>500 Internal server error</h1>');
     res.end();
   }
-}).listen(1337);
+});
+
+httpServer.listen(config.get('port'), function () {
+    console.log("Express server listening on port %s.", httpServer.address().port);
+});
